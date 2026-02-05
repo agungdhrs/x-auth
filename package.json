@@ -9,7 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.94.1",
+    "crypto-js": "^4.2.0",
     "next": "16.1.6",
+    "oauth-1.0a": "^2.2.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
