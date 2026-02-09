@@ -21,7 +21,15 @@ export async function GET(request: Request) {
     const { provider_token, provider_refresh_token, user } = session
     const { user_metadata } = user
 
+    console.log('=== OAuth Callback Success ===')
+    console.log('User ID:', user.id)
+    console.log('Provider Token (first 20 chars):', provider_token?.substring(0, 20) + '...')
+    console.log('Refresh Token exists:', !!provider_refresh_token)
+    console.log('User Metadata:', JSON.stringify(user_metadata, null, 2))
+
     if (provider_token && user_metadata) {
+      console.log('Saving tokens to twitter_accounts table...')
+      
       // Save to twitter_accounts table
       const { error: dbError } = await supabase
         .from('twitter_accounts')
@@ -40,8 +48,12 @@ export async function GET(request: Request) {
         })
       
       if (dbError) {
-        console.error('Failed to save Twitter token:', dbError)
+        console.error('❌ Failed to save Twitter token:', dbError)
+      } else {
+        console.log('✅ Successfully saved Twitter tokens to database')
       }
+    } else {
+      console.warn('⚠️  Missing provider_token or user_metadata, skipping database save')
     }
 
     const forwardedHost = request.headers.get('x-forwarded-host')

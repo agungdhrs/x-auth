@@ -1,0 +1,181 @@
+{
+  "name": "Instagram OAuth Callback",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "instagram-callback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-instagram",
+      "name": "Webhook - Instagram Callback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.instagram.com/oauth/access_token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $vars.INSTAGRAM_APP_ID }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $vars.INSTAGRAM_APP_SECRET }}"
+            },
+            {
+              "name": "grant_type",
+              "value": "authorization_code"
+            },
+            {
+              "name": "redirect_uri",
+              "value": "https://irisnco.app.n8n.cloud/webhook/instagram-callback"
+            },
+            {
+              "name": "code",
+              "value": "={{ $json.query.code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "exchange-token",
+      "name": "Exchange Code for Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.instagram.com/me?fields=id,username,name,profile_picture_url,account_type&access_token={{ $json.access_token }}",
+        "options": {}
+      },
+      "id": "get-user-info",
+      "name": "Get Instagram User Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "tableId": "instagram_accounts",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "instagram_user_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldName": "instagram_business_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldName": "username",
+              "fieldValue": "={{ $json.username }}"
+            },
+            {
+              "fieldName": "full_name",
+              "fieldValue": "={{ $json.name }}"
+            },
+            {
+              "fieldName": "avatar_url",
+              "fieldValue": "={{ $json.profile_picture_url }}"
+            },
+            {
+              "fieldName": "access_token",
+              "fieldValue": "={{ $('Exchange Code for Token').item.json.access_token }}"
+            },
+            {
+              "fieldName": "updated_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {
+          "onConflict": "instagram_user_id"
+        }
+      },
+      "id": "save-to-supabase",
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "redirect",
+        "redirectURL": "=http://localhost:3000?instagram_connected=true&username={{ $('Get Instagram User Info').item.json.username }}"
+      },
+      "id": "respond-success",
+      "name": "Redirect to App",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Instagram Callback": {
+      "main": [
+        [
+          {
+            "node": "Exchange Code for Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exchange Code for Token": {
+      "main": [
+        [
+          {
+            "node": "Get Instagram User Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Instagram User Info": {
+      "main": [
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Redirect to App",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
