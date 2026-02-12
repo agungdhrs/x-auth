@@ -1,115 +1,66 @@
 {
-  "name": "Instagram OAuth Callback",
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "GET",
-        "path": "instagram-callback",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "webhook-instagram",
-      "name": "Webhook - Instagram Callback",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [240, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.instagram.com/oauth/access_token",
-        "sendBody": true,
-        "contentType": "form-urlencoded",
-        "bodyParameters": {
-          "parameters": [
+        "dataType": "string",
+        "value1": "={{ $json.body.entry[0].id }}",
+        "rules": {
+          "rules": [
             {
-              "name": "client_id",
-              "value": "={{ $vars.INSTAGRAM_APP_ID }}"
+              "value2": "17841479580781724"
             },
             {
-              "name": "client_secret",
-              "value": "={{ $vars.INSTAGRAM_APP_SECRET }}"
+              "value2": "17841479631807976",
+              "output": 1
             },
             {
-              "name": "grant_type",
-              "value": "authorization_code"
+              "value2": "17841478206053106",
+              "output": 2
             },
             {
-              "name": "redirect_uri",
-              "value": "https://irisnco.app.n8n.cloud/webhook/instagram-callback"
-            },
-            {
-              "name": "code",
-              "value": "={{ $json.query.code }}"
+              "value2": "17841479706933679",
+              "output": 3
             }
           ]
         },
-        "options": {}
+        "fallbackOutput": 0
       },
-      "id": "exchange-token",
-      "name": "Exchange Code for Token",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [460, 300]
+      "id": "ed8e1273-5501-401f-9dca-8d3489f4b290",
+      "name": "Switch: Cek Akun Mana?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        256,
+        1952
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "=https://graph.instagram.com/me?fields=id,username,name,profile_picture_url,account_type&access_token={{ $json.access_token }}",
-        "options": {}
-      },
-      "id": "get-user-info",
-      "name": "Get Instagram User Info",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [680, 300]
-    },
-    {
-      "parameters": {
-        "operation": "upsert",
+        "operation": "get",
         "tableId": "instagram_accounts",
-        "dataToSend": "defineBelow",
-        "fieldsUi": {
-          "fieldValues": [
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "matchOneFilter",
+        "filters": {
+          "conditions": [
             {
-              "fieldName": "instagram_user_id",
-              "fieldValue": "={{ $json.id }}"
-            },
-            {
-              "fieldName": "instagram_business_id",
-              "fieldValue": "={{ $json.id }}"
-            },
-            {
-              "fieldName": "username",
-              "fieldValue": "={{ $json.username }}"
-            },
-            {
-              "fieldName": "full_name",
-              "fieldValue": "={{ $json.name }}"
-            },
-            {
-              "fieldName": "avatar_url",
-              "fieldValue": "={{ $json.profile_picture_url }}"
-            },
-            {
-              "fieldName": "access_token",
-              "fieldValue": "={{ $('Exchange Code for Token').item.json.access_token }}"
-            },
-            {
-              "fieldName": "updated_at",
-              "fieldValue": "={{ $now.toISO() }}"
+              "keyName": "instagram_business_id",
+              "condition": "equals",
+              "keyValue": "={{ $json.body.entry[0].id }}"
             }
           ]
         },
-        "options": {
-          "onConflict": "instagram_user_id"
-        }
+        "options": {}
       },
-      "id": "save-to-supabase",
-      "name": "Save to Supabase",
+      "id": "a1b2c3d4-supabase-token-query",
+      "name": "Supabase: Get Token",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [900, 300],
+      "position": [
+        480,
+        1952
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "YOUR_SUPABASE_CREDENTIAL_ID",
@@ -119,55 +70,410 @@
     },
     {
       "parameters": {
-        "respondWith": "redirect",
-        "redirectURL": "=http://localhost:3000?instagram_connected=true&username={{ $('Get Instagram User Info').item.json.username }}"
+        "jsCode": "// Merge webhook data dari Switch node dengan account data dari Supabase\nconst webhookData = $('Switch: Cek Akun Mana?').item.json;\nconst accountData = $input.item.json;\n\n// Combine keduanya\nconst mergedData = {\n  ...webhookData,  // Data webhook original (body.entry, dll)\n  ...accountData   // Data dari Supabase (access_token, bot_persona, dll)\n};\n\nreturn { json: mergedData };"
       },
-      "id": "respond-success",
-      "name": "Redirect to App",
-      "type": "n8n-nodes-base.respondToWebhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        1952
+      ],
+      "id": "merge-webhook-supabase-data",
+      "name": "Merge Webhook + Supabase Data"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instagram-webhook",
+        "options": {}
+      },
+      "id": "9d6ba1cd-fc9b-4ce1-a9a5-db14ce311ec1",
+      "name": "Instagram Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        32,
+        1984
+      ],
+      "webhookId": "2959742e-b411-4d9f-b437-1fd7cf0e95c6"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-3.5-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Kamu adalah {{ $json.bot_persona }}.\n\nTugasmu membalas komentar Instagram ini dengan singkat, ramah, dan terasa seperti manusia.\nGunakan bahasa Indonesia santai dan positif.\n\nMaksimal 2 kalimat.\nBoleh gunakan 1 emoji yang relevan.\nAjak interaksi ringan jika memungkinkan (pertanyaan singkat atau respon hangat).\n\nHindari jawaban kaku, formal, atau seperti bot.\n"
+            },
+            {
+              "content": "={{ $json.body.entry[0].changes[0].value.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1312,
+        1888
+      ],
+      "id": "734ad033-abe6-4784-be3c-696426785db9",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "QCPldoMCbpTlyIDH",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-3.5-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Kamu adalah {{ $json.bot_persona }}.\n\nTugasmu: Balas pesan ini seperti chat WhatsApp pribadi ke teman.\n\nRULES WAJIB (Gaya Bahasa):\n1. **Lowercase Dominan**: Gunakan huruf kecil, jangan terlalu peduli kapitalisasi (contoh: \"iya nanti dikabarin\" bukan \"Iya, nanti dikabari\").\n2. **Singkatan Natural**: Pakai singkatan umum Indonesia (yg, ga, udh, bgt, trus, oke, sip).\n3. **Tanpa Basa-basi**: Hilangkan sapaan kaku seperti \"Halo!\" atau \"Selamat siang\" kecuali lawan bicara menyapa duluan.\n4. **Maksimal 1-2 Kalimat Pendek**: Jangan menulis paragraf. Pecah kalimat jika perlu.\n5. **Emoji Minimal**: Gunakan maksimal 1 emoji atau tidak sama sekali. Jangan gunakan emoji \"😊\" (smile standar) terlalu sering, ganti dengan yang lebih ekspresif (🙏, 👍, 😅) atau tanpa emoji.\n6. **Dilarang**:\n   - Menawarkan bantuan (\"Ada yang bisa dibantu?\").\n   - Terlihat seperti Admin/CS/Bot.\n   - Menggunakan bahasa baku (saya, anda, apakah). Gunakan (aku/gw, kamu/lu) sesuai persona.\n\nKonteks: Kamu sedang ngobrol santai, bukan melayani pelanggan."
+            },
+            {
+              "content": "={{ $json.body.entry[0].messaging[0].message.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1312,
+        2080
+      ],
+      "id": "09e165af-0889-4d7d-ad56-dc0d9678ceba",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "QCPldoMCbpTlyIDH",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Auto reply",
+        "height": 688,
+        "width": 1872
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        1712
+      ],
+      "typeVersion": 1,
+      "id": "f959b00d-4743-41e0-b4dc-ca16dda7c5ab",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.instagram.com/v21.0/me/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "={{ $('Filter & Limit DM').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "recipient",
+              "value": "={{ { \"id\": $('Filter & Limit DM').item.json.body.entry[0].messaging[0].sender.id } }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ {'text': $json.message.content} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f2284fa3-2fce-42e2-aae0-4f8a60f11dfe",
+      "name": "Balas DM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1664,
+        2080
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/v21.0/{{ $('Filter Loop Komen').item.json.body.entry[0].changes[0].value.id }}/replies",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "={{ $('Filter Loop Komen').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.message.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4786acb9-f723-41a1-b806-55cbd0dfe83f",
+      "name": "Balas Komentar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1664,
+        1888
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.entry[0].messaging ? 'messages' : 'comments' }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "comments"
+            },
+            {
+              "value2": "messages",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "cef9af6a-34fb-4cb1-a2af-b68830bcf7ba",
+      "name": "Cek Tipe: Komentar vs DM",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        704,
+        1952
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const myId = String($input.item.json.instagram_business_id);\nconst item = $input.item.json.body.entry[0].changes[0].value;\nconst senderId = String(item.from.id);\nconst token = $input.item.json.access_token;\nconst parentId = item.parent_id || item.id;\n\nconsole.log(`[Komen] Checking Sender: ${senderId} vs MyID: ${myId}`);\n\n// 1. Blocklist Check\nconst botIds = ['17841479580781724', '17841479631807976', '17841478206053106'];\nif (botIds.includes(senderId) || senderId === myId) {\n    console.log('[Komen] Blocked by Blocklist');\n    return [];\n}\n\n// 2. Limit Check (5 Replies)\ntry {\n    const url = `https://graph.instagram.com/v21.0/${parentId}/replies?fields=from,id&access_token=${token}`;\n    const response = await this.helpers.httpRequest({ url: url, json: true });\n    const history = response.data || [];\n    // Force string compare for history check too\n    const myReplyCount = history.filter(h => h.from && String(h.from.id) === myId).length;\n    console.log(`[Komen] Reply Count: ${myReplyCount}`);\n    if (myReplyCount >= 5) {\n         console.log('[Komen] Limit Reached');\n         return [];\n    }\n} catch (e) {\n    // On error, we proceed safely but log it\n    console.log(`[Komen] History Error: ${e.message}`);\n}\n\nreturn [$input.item];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        1888
+      ],
+      "id": "157ba732-926b-4d11-980f-55f3796d15cc",
+      "name": "Filter & Limit Komen"
+    },
+    {
+      "parameters": {
+        "jsCode": "const myId = String($input.item.json.instagram_business_id);\nconst msg = $input.item.json.body.entry[0].messaging[0];\nconst senderId = String(msg.sender.id);\nconst token = $input.item.json.access_token;\n\nconsole.log(`[DM] Checking Sender: ${senderId} vs MyID: ${myId}`);\n\n// 1. Blocklist Check (Mencegah bot ngobrol sama bot lain yang sudah diketahui)\nconst botIds = ['17841479580781724', '17841479631807976', '17841478206053106'];\nif (botIds.includes(senderId) || senderId === myId) {\n    console.log('[DM] Blocked by Blocklist');\n    return [];\n}\n\n// 2. Limit Check / Anti-Looping Mechanism\ntry {\n    // A. Cari Thread ID antara Bot dengan User ini\n    const threadUrl = `https://graph.instagram.com/v21.0/me/conversations?platform=instagram&user_id=${senderId}&access_token=${token}`;\n    const threadRes = await this.helpers.httpRequest({ url: threadUrl, json: true });\n    \n    if (threadRes.data && threadRes.data.length > 0) {\n        const threadId = threadRes.data[0].id;\n        \n        // B. Ambil 10 pesan terakhir dari thread tersebut\n        const historyUrl = `https://graph.instagram.com/v21.0/${threadId}/messages?limit=10&fields=from,created_time&access_token=${token}`;\n        const historyRes = await this.helpers.httpRequest({ url: historyUrl, json: true });\n        const messages = historyRes.data || [];\n        \n        // C. Hitung berapa kali 'myId' (Bot) muncul di history tersebut\n        // Kita hitung jumlah balasan bot dalam 10 chat terakhir\n        const myReplyCount = messages.filter(m => String(m.from.id) === myId).length;\n        \n        console.log(`[DM] Bot Reply Count (last 10 msgs): ${myReplyCount}`);\n        \n        // LIMIT: Jika Bot sudah membalas 5 kali dalam sesi pendek ini, STOP.\n        if (myReplyCount >= 5) {\n             console.log('[DM] Limit Reached - Mencegah Looping');\n             return []; // Mengembalikan array kosong akan menghentikan workflow di sini\n        }\n    }\n} catch (error) {\n    console.log(`[DM] Error checking history: ${error.message}`);\n    // Opsional: Jika error API, kita bisa memilih untuk tetap lanjut atau stop.\n    // Di sini kita lanjut tapi log errornya.\n}\n\n// Jika lolos semua cek, lanjut balas\nreturn [$input.item];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        2080
+      ],
+      "id": "e6420fa2-3181-4ed8-9a99-484c112ab66b",
+      "name": "Filter & Limit DM"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1120, 300]
+      "position": [
+        1136,
+        1888
+      ],
+      "id": "ab17bc48-f4c8-4d0e-8d73-0771b0a20756",
+      "name": "Wait 5 Sec Komen",
+      "webhookId": "5ff8e872-abfa-4a79-9979-c0134ceec719",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        2080
+      ],
+      "id": "24808869-0506-452c-bfac-c7766086d520",
+      "name": "Wait 5 Sec DM",
+      "webhookId": "215361fc-41b6-409f-8146-55f6d348c389",
+      "disabled": true
     }
   ],
   "connections": {
-    "Webhook - Instagram Callback": {
+    "Switch: Cek Akun Mana?": {
       "main": [
         [
           {
-            "node": "Exchange Code for Token",
+            "node": "Supabase: Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase: Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase: Get Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase: Get Token",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Exchange Code for Token": {
+    "Supabase: Get Token": {
       "main": [
         [
           {
-            "node": "Get Instagram User Info",
+            "node": "Merge Webhook + Supabase Data",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get Instagram User Info": {
+    "Merge Webhook + Supabase Data": {
       "main": [
         [
           {
-            "node": "Save to Supabase",
+            "node": "Cek Tipe: Komentar vs DM",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Save to Supabase": {
+    "Instagram Webhook1": {
       "main": [
         [
           {
-            "node": "Redirect to App",
+            "node": "Switch: Cek Akun Mana?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Balas Komentar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Balas DM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Tipe: Komentar vs DM": {
+      "main": [
+        [
+          {
+            "node": "Filter & Limit Komen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Filter & Limit DM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter & Limit Komen": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 Sec Komen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter & Limit DM": {
+      "main": [
+        [
+          {
+            "node": "Wait 5 Sec DM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5 Sec Komen": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5 Sec DM": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
             "type": "main",
             "index": 0
           }
@@ -175,7 +481,66 @@
       ]
     }
   },
-  "settings": {
-    "executionOrder": "v1"
+  "pinData": {
+    "Instagram Webhook1": [
+      {
+        "headers": {
+          "host": "irisnco.app.n8n.cloud",
+          "user-agent": "facebookexternalua",
+          "content-length": "378",
+          "accept": "*/*",
+          "accept-encoding": "gzip, br",
+          "cdn-loop": "cloudflare; loops=1; subreqs=1",
+          "cf-connecting-ip": "2a03:2880:11ff:4c::",
+          "cf-ew-via": "15",
+          "cf-ipcountry": "US",
+          "cf-ray": "9c702fd6824a8f1d-DFW",
+          "cf-visitor": "{\"scheme\":\"https\"}",
+          "cf-worker": "n8n.cloud",
+          "content-type": "application/json",
+          "instagram-api-version": "v24.0",
+          "x-forwarded-for": "2a03:2880:11ff:4c::, 162.159.104.62",
+          "x-forwarded-host": "irisnco.app.n8n.cloud",
+          "x-forwarded-port": "443",
+          "x-forwarded-proto": "https",
+          "x-forwarded-server": "traefik-prod-users-gwc-29-677bf4754f-jwb4f",
+          "x-hub-signature": "sha1=f936236b40bbab227ed4dbbcdb5bfb1509af9d14",
+          "x-hub-signature-256": "sha256=d5bd041a86797df1e5de18d316d7f737b8e53c9a42b9c083813507233871b438",
+          "x-is-trusted": "yes",
+          "x-real-ip": "2a03:2880:11ff:4c::"
+        },
+        "params": {},
+        "query": {},
+        "body": {
+          "object": "instagram",
+          "entry": [
+            {
+              "time": 1769935675852,
+              "id": "17841479631807976",
+              "messaging": [
+                {
+                  "sender": {
+                    "id": "1171704264952961"
+                  },
+                  "recipient": {
+                    "id": "17841479631807976"
+                  },
+                  "timestamp": 1769935675396,
+                  "read": {
+                    "mid": "aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQxNDc5NjMxODA3OTc2OjM0MDI4MjM2Njg0MTcxMDMwMTI0NDI3NjAyNTg0ODA3Njc0MTM3MDozMjY0OTU1MDQxODM5ODc3MzA1MDUyNzk4NzYwMzA3OTE2OAZDZD"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "webhookUrl": "https://irisnco.app.n8n.cloud/webhook/instagram-webhook",
+        "executionMode": "production"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4707a18444016fe2d0d9d067ea353e9096c70b5bf9db9010dee08ab32de2d8ec"
   }
 }

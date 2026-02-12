@@ -3,7 +3,8 @@ create table if not exists public.instagram_accounts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   instagram_user_id text not null, -- Instagram user ID
-  instagram_business_id text, -- Instagram Business Account ID
+  instagram_business_id text, -- Instagram Business Account ID (legacy)
+  instagram_account_id text, -- Instagram Business Account ID (17841... format for webhooks)
   page_id text, -- Facebook Page ID linked to Instagram
   username text,
   full_name text,

@@ -54,6 +54,14 @@ export default async function InstagramAccountDisplay({ userId }: { userId: stri
                 {account.instagram_business_id}
               </p>
             </div>
+            {account.instagram_account_id && (
+              <div>
+                <span className="text-gray-400">Instagram Account ID (for webhooks):</span>
+                <p className="font-mono text-xs text-green-400 break-all font-semibold">
+                  {account.instagram_account_id}
+                </p>
+              </div>
+            )}
             <div>
               <span className="text-gray-400">Instagram User ID:</span>
               <p className="font-mono text-xs text-pink-400 break-all">
